@@ -29,7 +29,7 @@ var pageTmpl = template.Must(template.New("index").Parse(`
 
 {{if .Flash}}<div class="flash">{{.Flash}}</div>{{end}}
 
-<form action="/upload" method="post" enctype="multipart/form-data">
+<form action="{{.BasePath}}/upload" method="post" enctype="multipart/form-data">
   <input type="file" name="file" required>
   <button type="submit">Déposer le document</button>
 </form>
@@ -42,9 +42,9 @@ var pageTmpl = template.Must(template.New("index").Parse(`
     <td>{{.Size}} o</td>
     <td>{{.LastModified.Format "02/01/2006 15:04:05"}}</td>
     <td>
-      <a href="/download?key={{.Key}}">télécharger</a>
+      <a href="{{$.BasePath}}/download?key={{.Key}}">télécharger</a>
       &nbsp;|&nbsp;
-      <form class="inline" action="/delete" method="post" onsubmit="return confirm('Supprimer {{.Key}} ?');">
+      <form class="inline" action="{{$.BasePath}}/delete" method="post" onsubmit="return confirm('Supprimer {{.Key}} ?');">
         <input type="hidden" name="key" value="{{.Key}}">
         <button class="danger" type="submit">supprimer</button>
       </form>
@@ -63,7 +63,7 @@ var pageTmpl = template.Must(template.New("index").Parse(`
     Il n'y a donc pas d'historique à afficher ici — à la différence de Ceph,
     qui gère nativement plusieurs versions par objet.
   </p>
-  <form action="/overwrite-demo" method="post">
+  <form action="{{.BasePath}}/overwrite-demo" method="post">
     <button type="submit">Démontrer l'écrasement (écrit 2 versions du même fichier)</button>
   </form>
 </div>
