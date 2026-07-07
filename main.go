@@ -31,6 +31,7 @@ import (
 var (
 	s3Client *s3.Client
 	bucket   string
+	basePath string // e.g. "/has-app" when served behind a path-prefixing reverse proxy
 )
 
 type Doc struct {
@@ -45,6 +46,7 @@ func main() {
 	bucket = mustEnv("S3_BUCKET")
 	accessKey := mustEnv("S3_ACCESS_KEY")
 	secretKey := mustEnv("S3_SECRET_KEY")
+	basePath = envOr("BASE_PATH", "")
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(region),
@@ -60,11 +62,11 @@ func main() {
 	})
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", handleIndex)
-	mux.HandleFunc("/upload", handleUpload)
-	mux.HandleFunc("/download", handleDownload)
-	mux.HandleFunc("/delete", handleDelete)
-	mux.HandleFunc("/overwrite-demo", handleOverwriteDemo)
+	mux.HandleFunc(basePath+"/", handleIndex)
+	mux.HandleFunc(basePath+"/upload", handleUpload)
+	mux.HandleFunc(basePath+"/download", handleDownload)
+	mux.HandleFunc(basePath+"/delete", handleDelete)
+	mux.HandleFunc(basePath+"/overwrite-demo", handleOverwriteDemo)
 
 	addr := envOr("LISTEN_ADDR", ":8080")
 	log.Printf("mini-GED listening on %s (bucket=%s endpoint=%s)", addr, bucket, endpoint)
@@ -80,13 +82,15 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := pageTmpl.Execute(w, struct {
-		Bucket string
-		Docs   []Doc
-		Flash  string
+		Bucket   string
+		BasePath string
+		Docs     []Doc
+		Flash    string
 	}{
-		Bucket: bucket,
-		Docs:   docs,
-		Flash:  r.URL.Query().Get("flash"),
+		Bucket:   bucket,
+		BasePath: basePath,
+		Docs:     docs,
+		Flash:    r.URL.Query().Get("flash"),
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -213,7 +217,7 @@ func listDocs(ctx context.Context) ([]Doc, error) {
 }
 
 func redirectFlash(w http.ResponseWriter, r *http.Request, msg string) {
-	http.Redirect(w, r, "/?flash="+template.URLQueryEscaper(msg), http.StatusSeeOther)
+	http.Redirect(w, r, basePath+"/?flash="+template.URLQueryEscaper(msg), http.StatusSeeOther)
 }
 
 func mustEnv(k string) string {
